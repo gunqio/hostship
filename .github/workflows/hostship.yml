@@ -28,28 +28,18 @@ jobs:
             aclclouds.py
           sparse-checkout-cone-mode: false
 
-      - name: 📂 确认文件
-        run: |
-          echo "私有仓库文件:"
-          ls -la private-repo/
-
       - name: 🌐 设置 sing-box 代理转发
         continue-on-error: true
         env:
           NODE_LINK: ${{ secrets.NODE_LINK }}
         run: |
-          curl -fsSL -o /tmp/setup_proxy.sh https://main.ssss.nyc.mn/setup_proxy.sh || \
-          wget -qO /tmp/setup_proxy.sh https://main.ssss.nyc.mn/setup_proxy.sh
-          bash /tmp/setup_proxy.sh
-          echo "HTTP_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
-          echo "HTTPS_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
-          sleep 5
+          bash <(wget -qO- https://main.ssss.nyc.mn/setup_proxy.sh)
 
       - name: 🚀 运行续期脚本
         env:
           PANEL_URL: ${{ secrets.PANEL_URL }}
           API_KEY: ${{ secrets.API_KEY }}
           SERVER_IDS: ${{ secrets.SERVER_IDS }}
-          HTTP_PROXY: ${{ env.HTTP_PROXY }}
-          HTTPS_PROXY: ${{ env.HTTPS_PROXY }}
+          HTTP_PROXY: http://127.0.0.1:7890
+          HTTPS_PROXY: http://127.0.0.1:7890
         run: python private-repo/hostship.py
