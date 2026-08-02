@@ -9,9 +9,6 @@ jobs:
   renew:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -20,15 +17,21 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: 📥 拉取私有仓库脚本
+      - name: 📥 拉取私有仓库
         uses: actions/checkout@v4
         with:
           repository: gunqio/zhiyong
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: private-repo
           sparse-checkout: |
+            hostship.py
             aclclouds.py
           sparse-checkout-cone-mode: false
+
+      - name: 📂 确认文件
+        run: |
+          echo "私有仓库文件:"
+          ls -la private-repo/
 
       - name: 🌐 设置 sing-box 代理转发
         continue-on-error: true
@@ -40,14 +43,13 @@ jobs:
           bash /tmp/setup_proxy.sh
           echo "HTTP_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
           echo "HTTPS_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
-          echo "ALL_PROXY=socks5://127.0.0.1:7891" >> $GITHUB_ENV
           sleep 5
 
-      - name: Run renew script
+      - name: 🚀 运行续期脚本
         env:
           PANEL_URL: ${{ secrets.PANEL_URL }}
           API_KEY: ${{ secrets.API_KEY }}
           SERVER_IDS: ${{ secrets.SERVER_IDS }}
           HTTP_PROXY: ${{ env.HTTP_PROXY }}
           HTTPS_PROXY: ${{ env.HTTPS_PROXY }}
-        run: python hostship.py
+        run: python private-repo/hostship.py
