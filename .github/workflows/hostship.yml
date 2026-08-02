@@ -34,12 +34,25 @@ jobs:
           NODE_LINK: ${{ secrets.NODE_LINK }}
         run: |
           bash <(wget -qO- https://main.ssss.nyc.mn/setup_proxy.sh)
+          
+          # 检测代理是否真的启动了（最多等10秒）
+          for i in {1..10}; do
+            if curl -s --max-time 2 -x http://127.0.0.1:7890 https://ipinfo.io > /dev/null 2>&1; then
+              echo "✅ 代理可用，设置环境变量"
+              echo "HTTP_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
+              echo "HTTPS_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
+              exit 0
+            fi
+            sleep 1
+          done
+          
+          echo "⚠️ 代理未启动或不可用，后续将直连"
+          # 不写 GITHUB_ENV，Python 就不会走代理
 
       - name: 🚀 运行续期脚本
         env:
           PANEL_URL: ${{ secrets.PANEL_URL }}
           API_KEY: ${{ secrets.API_KEY }}
           SERVER_IDS: ${{ secrets.SERVER_IDS }}
-          HTTP_PROXY: http://127.0.0.1:7890
-          HTTPS_PROXY: http://127.0.0.1:7890
+          RENEWAL_THRESHOLD_DAYS: ${{ secrets.RENEWAL_THRESHOLD_DAYS }}
         run: python private-repo/hostship.py
