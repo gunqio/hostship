@@ -2,7 +2,6 @@ name: Host-Ship Server Renew
 
 on:
   schedule:
-    # 每天北京时间 10:00 运行（UTC 02:00）
     - cron: '0 2 * * *'
   workflow_dispatch:
 
@@ -21,7 +20,6 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      # ========== 新增步骤 1：拉取私有仓库脚本 ==========
       - name: 📥 拉取私有仓库脚本
         uses: actions/checkout@v4
         with:
@@ -32,25 +30,24 @@ jobs:
             aclclouds.py
           sparse-checkout-cone-mode: false
 
-      # ========== 新增步骤 2：设置 sing-box 代理转发 ==========
       - name: 🌐 设置 sing-box 代理转发
         continue-on-error: true
         env:
           NODE_LINK: ${{ secrets.NODE_LINK }}
         run: |
-          bash <(wget -qO- https://main.ssss.nyc.mn/setup_proxy.sh)
-          # 如果脚本在后台启动了本地代理，把地址写进 GITHUB_ENV 供后续步骤使用
+          curl -fsSL -o /tmp/setup_proxy.sh https://main.ssss.nyc.mn/setup_proxy.sh || \
+          wget -qO /tmp/setup_proxy.sh https://main.ssss.nyc.mn/setup_proxy.sh
+          bash /tmp/setup_proxy.sh
           echo "HTTP_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
           echo "HTTPS_PROXY=http://127.0.0.1:7890" >> $GITHUB_ENV
           echo "ALL_PROXY=socks5://127.0.0.1:7891" >> $GITHUB_ENV
-          sleep 3
+          sleep 5
 
       - name: Run renew script
         env:
           PANEL_URL: ${{ secrets.PANEL_URL }}
           API_KEY: ${{ secrets.API_KEY }}
           SERVER_IDS: ${{ secrets.SERVER_IDS }}
-          # 代理环境变量会自动被 requests 库读取
           HTTP_PROXY: ${{ env.HTTP_PROXY }}
           HTTPS_PROXY: ${{ env.HTTPS_PROXY }}
-        run: python renew.py
+        run: python hostship.py
